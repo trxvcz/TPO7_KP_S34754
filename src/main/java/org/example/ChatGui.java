@@ -10,20 +10,22 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
 public class ChatGui extends JFrame {
-    private JPanel contentPane;
-    private CardLayout cardLayout;
+    private final JPanel contentPane;
+    private final CardLayout cardLayout;
 
     private JTextField nicknameField;
     private JTextField roomField;
     private JButton joinButton;
 
     private JTextArea chatArea;
-    private JList<String> userList;
     private DefaultListModel<String> listModel;
     private JTextField inputField;
     private JButton sendButton;
+    private JButton logoutButton;
 
-    private ChatBackend backend;
+    private JLabel infoLabel;
+
+    private final ChatBackend backend;
 
     public ChatGui() {
         this.backend = new ChatBackend();
@@ -50,15 +52,15 @@ public class ChatGui extends JFrame {
             String room = roomField.getText().trim();
 
             if (!nickname.isEmpty() && !room.isEmpty()) {
+                infoLabel.setText("Pokój: " + room + "  |  Użytkownik: " + nickname);
+
                 showChatPanel();
 
-                Consumer<String> messageConsumer = message -> {
-                    chatArea.append(message + "\n");
-                };
+                Consumer<String> messageConsumer = message -> chatArea.append(message + "\n");
 
                 Consumer<String> presenceConsumer = presence -> {
+                    String nick = presence.substring(presence.indexOf(":") + 1).trim();
                     if (presence.startsWith("JOIN:")) {
-                        String nick = presence.substring(presence.indexOf(":") + 1).trim();
                         if (!listModel.contains(nick)) {
                             listModel.addElement(nick);
                             try {
@@ -69,10 +71,8 @@ public class ChatGui extends JFrame {
                         }
 
                     } else if (presence.startsWith("LEAVE:")) {
-                        String nick = presence.substring(presence.indexOf(":") + 1).trim();
                         listModel.removeElement(nick);
-                    }else if (presence.startsWith("HERE:")){
-                        String nick = presence.substring(presence.indexOf(":") + 1).trim();
+                    }else if (presence.startsWith("HERE:")) {
                         if (!listModel.contains(nick) && !nick.equals(nickname)) {
                             listModel.addElement(nick);
                         }
@@ -88,9 +88,8 @@ public class ChatGui extends JFrame {
             }
         });
 
-        ActionListener  sendAction = e -> {
+        ActionListener sendAction = e -> {
             String text = inputField.getText().trim();
-
             if (!text.isEmpty()) {
                 try {
                     backend.sendMessage(text);
@@ -104,6 +103,16 @@ public class ChatGui extends JFrame {
         sendButton.addActionListener(sendAction);
         inputField.addActionListener(sendAction);
 
+        logoutButton.addActionListener(e -> {
+            if (backend != null) {
+                backend.disconnect();
+            }
+
+            listModel.clear();
+            chatArea.setText("");
+            infoLabel.setText("");
+            cardLayout.show(contentPane, "LOGIN");
+        });
 
         this.addWindowListener(new WindowAdapter() {
             @Override
@@ -115,7 +124,6 @@ public class ChatGui extends JFrame {
             }
         });
     }
-
 
     private void buildLoginPanel() {
         JPanel loginPanel = new JPanel(new GridBagLayout());
@@ -140,8 +148,19 @@ public class ChatGui extends JFrame {
     }
 
     private void buildChatPanel() {
-        JPanel chatPanel = new JPanel(new BorderLayout(5,5));
-        chatPanel.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
+        JPanel chatPanel = new JPanel(new BorderLayout(5, 5));
+        chatPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+
+        JPanel topPanel = new JPanel(new BorderLayout());
+        topPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, Color.LIGHT_GRAY),
+                BorderFactory.createEmptyBorder(0, 5, 1, 5)
+        ));
+
+        infoLabel = new JLabel("");
+        infoLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        topPanel.add(infoLabel, BorderLayout.WEST);
+        chatPanel.add(topPanel, BorderLayout.NORTH);
 
         chatArea = new JTextArea();
         chatArea.setEditable(false);
@@ -151,28 +170,31 @@ public class ChatGui extends JFrame {
         chatPanel.add(chatScroll, BorderLayout.CENTER);
 
         listModel = new DefaultListModel<>();
-        userList = new JList<>(listModel);
+        JList<String> userList = new JList<>(listModel);
         JScrollPane listScrollPane = new JScrollPane(userList);
-        listScrollPane.setPreferredSize(new Dimension(150,0));
-
+        listScrollPane.setPreferredSize(new Dimension(150, 0));
 
         JPanel rightPanel = new JPanel(new BorderLayout());
-        rightPanel.add(new JLabel("Obecni w pokoju:"),BorderLayout.NORTH);
+        rightPanel.add(new JLabel("Obecni w pokoju:"), BorderLayout.NORTH);
         rightPanel.add(listScrollPane, BorderLayout.CENTER);
         chatPanel.add(rightPanel, BorderLayout.EAST);
 
         JPanel bottomPanel = new JPanel(new BorderLayout(5, 0));
         inputField = new JTextField();
+
         sendButton = new JButton("Wyślij");
+        logoutButton = new JButton("Wyloguj");
+
+        JPanel buttonPanel = new JPanel(new GridLayout(1, 2, 5, 0));
+        buttonPanel.add(sendButton);
+        buttonPanel.add(logoutButton);
 
         bottomPanel.add(inputField, BorderLayout.CENTER);
-        bottomPanel.add(sendButton, BorderLayout.EAST);
+        bottomPanel.add(buttonPanel, BorderLayout.EAST);
 
         chatPanel.add(bottomPanel, BorderLayout.SOUTH);
 
-        contentPane.add(chatPanel,"CHAT");
-
-
+        contentPane.add(chatPanel, "CHAT");
     }
 
     public void showChatPanel() {
@@ -181,8 +203,6 @@ public class ChatGui extends JFrame {
 
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(()->{
-            new ChatGui().setVisible(true);
-        });
+        SwingUtilities.invokeLater(()-> new ChatGui().setVisible(true));
     }
 }
