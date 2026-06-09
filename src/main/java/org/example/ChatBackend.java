@@ -34,7 +34,6 @@ public class ChatBackend {
 
         channel.queueBind(queue, CHAT_EXCHANGE, "room." + roomName);
         channel.queueBind(queue, CHAT_EXCHANGE, "private." + nickname);
-
         channel.queueBind(queue, PRESENCE_EXCHANGE, "presence." + roomName);
 
         DeliverCallback deliverCallback = (consumerTag, delivery) -> {
