@@ -12,27 +12,23 @@ import java.util.function.Consumer;
 public class ChatGui extends JFrame {
     private final JPanel contentPane;
     private final CardLayout cardLayout;
-
+    private final ChatBackend backend;
     private JTextField nicknameField;
     private JTextField roomField;
     private JButton joinButton;
-
     private JTextArea chatArea;
     private DefaultListModel<String> listModel;
     private JTextField inputField;
     private JButton sendButton;
     private JButton logoutButton;
-
     private JLabel infoLabel;
-
-    private final ChatBackend backend;
 
     public ChatGui() {
         this.backend = new ChatBackend();
 
         setTitle("Chat");
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-        setSize(600,600);
+        setSize(600, 600);
         setLocationRelativeTo(null);
         cardLayout = new CardLayout();
         contentPane = new JPanel();
@@ -44,6 +40,10 @@ public class ChatGui extends JFrame {
 
         add(contentPane);
         setupListeners();
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new ChatGui().setVisible(true));
     }
 
     private void setupListeners() {
@@ -64,7 +64,7 @@ public class ChatGui extends JFrame {
                         if (!listModel.contains(nick)) {
                             listModel.addElement(nick);
                             try {
-                                backend.sendPresence("HERE:"+nickname);
+                                backend.sendPresence("HERE:" + nickname);
                             } catch (IOException ex) {
                                 throw new RuntimeException(ex);
                             }
@@ -72,7 +72,7 @@ public class ChatGui extends JFrame {
 
                     } else if (presence.startsWith("LEAVE:")) {
                         listModel.removeElement(nick);
-                    }else if (presence.startsWith("HERE:")) {
+                    } else if (presence.startsWith("HERE:")) {
                         if (!listModel.contains(nick) && !nick.equals(nickname)) {
                             listModel.addElement(nick);
                         }
@@ -83,7 +83,7 @@ public class ChatGui extends JFrame {
                 } catch (IOException | TimeoutException ex) {
                     throw new RuntimeException(ex);
                 }
-            }else {
+            } else {
                 JOptionPane.showMessageDialog(contentPane, "Please enter a nickname and a room name.");
             }
         });
@@ -127,7 +127,7 @@ public class ChatGui extends JFrame {
 
     private void buildLoginPanel() {
         JPanel loginPanel = new JPanel(new GridBagLayout());
-        JPanel formPanel = new JPanel(new GridLayout(3,2,10,10));
+        JPanel formPanel = new JPanel(new GridLayout(3, 2, 10, 10));
 
         formPanel.add(new JLabel("Nickname:"));
         nicknameField = new JTextField(15);
@@ -152,10 +152,7 @@ public class ChatGui extends JFrame {
         chatPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
         JPanel topPanel = new JPanel(new BorderLayout());
-        topPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 1, 0, Color.LIGHT_GRAY),
-                BorderFactory.createEmptyBorder(0, 5, 1, 5)
-        ));
+        topPanel.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, Color.LIGHT_GRAY), BorderFactory.createEmptyBorder(0, 5, 1, 5)));
 
         infoLabel = new JLabel("");
         infoLabel.setFont(new Font("Arial", Font.BOLD, 14));
@@ -199,10 +196,5 @@ public class ChatGui extends JFrame {
 
     public void showChatPanel() {
         cardLayout.show(contentPane, "CHAT");
-    }
-
-
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(()-> new ChatGui().setVisible(true));
     }
 }
